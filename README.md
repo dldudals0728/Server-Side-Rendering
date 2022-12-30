@@ -16,6 +16,84 @@
 # NEED
 1. github에 프로젝트를 올릴 건데, DB 계정 이름, password등을 어떻게 숨길 것인가?
 
+# Spring Security
+pom.xml에 다음의 읜존성을 추가하여 Spring Security를 사용한다.
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
+
+## Spring Security는 <i>"순서"</i> 가 중요하다!!!
+
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    @Bean
+
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.authorizeRequests()    // 요청에 의한 보안검사 시작
+                .anyRequest().authenticated()   // 어떤 요청에도 보안검사를 실시한다.
+                .and()
+                .formLogin()    // 보안 검증은 formLogin(로그인)방식으로 하겠다.
+                .loginPage("/login")
+                .defaultSuccessUrl("/home")
+                .failureForwardUrl("/test");
+        
+        return http.build();
+    }
+}
+```
+기존의 Security Config 파일의 SecurityFilterChain 형태이다.
+
+현재 주석에서 보이는 것과 같이 어떤 요청에도 보안 검사를 실시하고, 로그인 페이지 설정과 성공, 실패 여부에 따라 이동하는 페이지를 적었다.
+
+> localhost에서 리디렉션한 횟수가 너무 많습니다.
+
+라는 chrome 에러가 발생했다.
+
+이를 해결하기 위해서 다음과 같이 코드를 수정했다.
+
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    @Bean
+
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf().disable();
+
+        http.authorizeRequests()    // 요청에 의한 보안검사 시작
+                .antMatchers("/login").permitAll()  // 어떤 요청에도 보안검사를 실시하기 전에, 로그인 페이지는 누구나 접근 가능하도록 한다!
+                .anyRequest().authenticated()   // 어떤 요청에도 보안검사를 실시한다.
+                .and()
+                .formLogin()    // 보안 검증은 formLogin(로그인)방식으로 하겠다.
+                .loginPage("/login")
+                .defaultSuccessUrl("/home")
+                .failureForwardUrl("/test");
+        
+        return http.build();
+    }
+}
+```
+어떠한 요청에도 보안검사를 진행하다 보니, 권한을 얻기 위한 로그인 페이지도 접속하려면 권한이 있게되는 아이러니한 상황이 발생했다.<br>
+(내가 이해한게 맞는지 모르겠는데 이런 것 같다.)
+
+그래서 보안검사를 진행하기 전에, 로그인 페이지에 대해서는 모든 사용자가 접근이 가능하도록 순서를 지켜 작성해주니 정상적으로 작동했다.
+
+
 # ERROR Report
 ### 첫번째 에러
 ```
