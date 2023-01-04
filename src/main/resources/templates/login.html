@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>로그인 페이지</title>
 </head>
 <body>
-    <form role="form" method="post" action="/login">
-        <div>
-            <label>아이디</label>
-                <input name="username" placeholder="ID" />
-        </div>
-        <div>
-            <label>비밀번호</label>
-                <input name="password" placeholder="password" />
-        </div>
-        <button>로그인</button>
-    </form>
+<h1>로그인 페이지</h1>
+<hr/>
+<!-- formLogin을 이용한 시큐리티는 인증 시 x-www-form-url-encoded 타입만 인식 -->
+<form action="/loginProc" method="post">
+    <label>ID
+        <input type="text" name="username" />
+    </label>
+    <label>Password
+        <input type="password" name="password" />
+    </label>
+    <button>로그인</button>
+    <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
+</form>
 </body>
 </html>

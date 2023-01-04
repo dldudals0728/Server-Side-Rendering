@@ -4,6 +4,59 @@
 
 본 문서는 [carework-web-page](https://github.com/dldudals0728/carework-web-page)의 Readme.md의 연속입니다.
 
+## spring security flow
+loginProcessingUrl 함수를 통해 spring security가 로그인을 낚아챌 수 있도록 한다.<br>
+로그인이 완료되면 security session을 만들어 준다.(key값으로 Security ContextHolder를 가진다.)<br>
+그리고 여기에 해당하는 value는 특정 Object 만을 가질 수 있는데, 그것이 Authentication 타입의 객체이다.<br>
+그리고 이 Authentication 안에 User 정보를 가지고 있다. 그리고 이 User 정보는 UserDetails 객체이다.<br>
+
+Security session => Authentication => UserDetails<br>
+> 여기서 Authentication이 UserDetailsService, UserDetails는 UserDetails를 의마한다 !!
+
+login 요청이 오면 자동으로 UserDetailsService 타입으로 등록되어 있는 서비스의 loadUserByUsername 함수가 실행된다.<br>
+loadUserByUsername 함수가 return 하는 값은 Authentication 내부로 들어간다. 즉 Authentication 내부로 리턴!<br>
+그 후에 Authentication은 session 내부로 들어간다.
+
+## @Bean
+@Bean annotation은 <i>"해당 메서드가 반환하는 오브젝트"</i> 를 IOC에 등록해준다!
+
+## redirect:/
+spring MVC에서 redirect:/something 으로 반환값을 주면 something 이라는 함수를 호출해 준다?<br>
+> 함수인지, 아니면 mapping 되는 url 기준인지 확인 필요!!
+
+
+## 로그인이 계속해서 안됐던 이유!
+SSR로 넘어오고, spring security를 이용한 로그인을 다루는데 회원가입은 정상적으로 이루어졌으나 로그인을 하려고 하면
+> Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' not supported]
+
+이렇게 POST 형식은 지원하지 않는다는 오류가 생겼다. 그리고 View 내에서는 405 error white label page가 보였다.
+
+이거 해결하려고
+1. csrf disable
+2. csrf ignoringAntMatchers
+3. hidden input tag 추가
+
+등 별짓을 다했는데 안되었다.
+
+근데 갑작스럽게 해결하게 되었는데.....
+
+#### 문제는 Authentication에 담을 UserDetails의 기본 함수를 overriding 하는 과정에 있었다.
+
+UserDetails를 구현하는 객체는 필수적으로 overriding 해야 하는 함수가 있다.<br>
+getAuthorities, getPassword, getUsername 등 많이 있다. 그리고 boolean type을 반환하는 함수도 있는데 내가 이걸 그냥 지나친 것이 큰 문제였다.
+
+isAccountNonExpired, isAccountNonLocked, isCredentialsNonExpired, isEnabled 이렇게 네 가지 함수가 있는데 이 모든 함수의 반환값을 true 로 하니 정상적으로 로그인되었다.
+
+원인을 꼭 찾아보자!!
+
+## /logout 404 error
+로그인 기능을 구현한 후 logout을 해보니 404 error가 발생했다.<br>
+그 이유는 Spring Security는 기본적으로 CSRF를 막기 위해 활성화 되어 있는데, 이것이 Post 방식으로 들어오는 데이터를 막는 것이다.<br>
+csrf().disable()로 간단하게 해결할 수 있다.
+> ignoringAntMatchers는 안됨!!
+
+## failureUrl vs failureForwardUrl ??
+
 
 <i>해 내야지. 늘 그랬듯.</i>
 ## initialize
@@ -26,6 +79,10 @@ pom.xml에 다음의 읜존성을 추가하여 Spring Security를 사용한다.
 ```
 
 ## Spring Security는 <i>"순서"</i> 가 중요하다!!!
+>1. 인증 없이 접근할 수 있는 페이지 설정 &rarr; .antMatch("url").permitAll()
+>2. 나머지는 인증 후 접근 가능하도록 설정 &rarr; .anyRequest().authenticated()
+
+<hr>
 
 ```java
 import org.springframework.context.annotation.Bean;
@@ -92,6 +149,8 @@ public class SecurityConfig {
 (내가 이해한게 맞는지 모르겠는데 이런 것 같다.)
 
 그래서 보안검사를 진행하기 전에, 로그인 페이지에 대해서는 모든 사용자가 접근이 가능하도록 순서를 지켜 작성해주니 정상적으로 작동했다.
+
+**따라서 인증없이 접근할 수 있는 페이지 .permitAll() -> 나머지는 .anyRequest().authenticated()를 통해 인증해야 접근 가능 하도록** 설계하면 된다!!!
 
 
 # ERROR Report
