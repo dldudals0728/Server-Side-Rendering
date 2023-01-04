@@ -55,6 +55,35 @@ isAccountNonExpired, isAccountNonLocked, isCredentialsNonExpired, isEnabled 이�
 csrf().disable()로 간단하게 해결할 수 있다.
 > ignoringAntMatchers는 안됨!!
 
+## 현재 로그인한 user의 정보
+현재 로그인되어 있는 user의 정보를 가져올 수 있다. 나는 컨트롤러에서 해당 유저의 정보를 가져오는 방법을 채택했다.
+```java
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
+public class UserController {
+    public String index(@AuthenticationPrincipal MemberDetails memberDetails, Model model) {
+        if (memberDetails != null) {
+            System.out.println("member details is not null!");
+            System.out.println(memberDetails.getUsername());
+        } else {
+            System.out.println("member details is null!");
+        }
+        model.addAttribute("loginInfo", memberDetails);
+        return "index";
+    }
+}
+```
+Controller 에서 Principal을 이용하여 사용자 정보를 받는 방법도 있는데, 이건 getName()만 가능해서 뺌!!
+
+추가로 Bean 에서 사용자 정보를 얻을 수도 있다. (나중에 유용하게 사용할 수 있을듯!)
+```java
+Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+UserDetails userDetails = (UserDetails)principal;
+
+String username = principal.getUsername();
+String password = principal.getPassword();
+```
+
 ## failureUrl vs failureForwardUrl ??
 
 

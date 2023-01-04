@@ -15,7 +15,10 @@
 <form action="/join" method="get">
     <button>회원가입</button>
 </form>
-<form action="/login" method="get">
+<form th:if="${loginInfo}" action="/logout" method="post">
+    <button>로그아웃</button>
+</form>
+<form th:unless="${loginInfo}" action="/login" method="get">
     <button>로그인</button>
 </form>
 </body>

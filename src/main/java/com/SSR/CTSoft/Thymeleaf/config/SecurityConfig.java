@@ -34,6 +34,7 @@ public class SecurityConfig {
         http.authorizeRequests()
                 .antMatchers("/user/**").authenticated()
                 .antMatchers("/admin/**").access("hasRole('ROLE_ADMIN')")
+                .antMatchers("/join").anonymous()
                 .anyRequest().permitAll()
                 .and()
 //                .csrf().ignoringAntMatchers("/login")
@@ -44,7 +45,10 @@ public class SecurityConfig {
                 .loginPage("/login")
                 .loginProcessingUrl("/loginProc")
                 .defaultSuccessUrl("/")
-                .failureUrl("/join");
+                .failureUrl("/login/error")
+                .and()
+                .logout()
+                .logoutSuccessUrl("/");
 //                .failureForwardUrl("/join");
 
         return http.build();
