@@ -1,16 +1,25 @@
 package com.SSR.CTSoft.Thymeleaf.config;
 
+import com.SSR.CTSoft.Thymeleaf.jwt.JwtAuthenticationEntryPoint;
+import com.SSR.CTSoft.Thymeleaf.jwt.JwtRequestFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtRequestFilter jwtRequestFilter;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -33,23 +42,31 @@ public class SecurityConfig {
 
         http.authorizeRequests()
                 .antMatchers("/user/**").authenticated()
-                .antMatchers("/admin/**").access("hasRole('ROLE_ADMIN')")
+//                .antMatchers("/admin/**").access("hasRole('ROLE_ADMIN')")
                 .antMatchers("/join").anonymous()
                 .anyRequest().permitAll()
-                .and()
-//                .csrf().ignoringAntMatchers("/login")
-//                .ignoringAntMatchers("/join")
-//                .ignoringAntMatchers("/logout")
 //                .and()
-                .formLogin()
-                .loginPage("/login")
-                .loginProcessingUrl("/loginProc")
-                .defaultSuccessUrl("/")
-                .failureUrl("/login/error")
+//                .formLogin()
+//                .loginPage("/login")
+////                .loginProcessingUrl("/loginProc")
+//                .loginProcessingUrl("/admin/authentication")
+//                .defaultSuccessUrl("/")
+//                .failureUrl("/login/error")
+//                .and()
+//                .logout()
+//                .logoutSuccessUrl("/")
+
                 .and()
-                .logout()
-                .logoutSuccessUrl("/");
-//                .failureForwardUrl("/join");
+                // exception 처리
+                .exceptionHandling()
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .and()
+                // Spring Security 에서 session 을 생성하거나 사용하지 않도록 설정
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                // JWT filter 적용
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

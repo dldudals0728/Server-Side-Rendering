@@ -4,11 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
-import java.util.Arrays;
 import java.util.Collection;
 
 @Entity
@@ -30,4 +27,7 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    // @Transient: 해당 데이터를 column과 매핑시키지 않는다.
+    @Transient
+    Collection<? extends GrantedAuthority> authorities;
 }
