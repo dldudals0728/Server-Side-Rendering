@@ -7,6 +7,10 @@ import com.SSR.CTSoft.Thymeleaf.entity.User;
 import com.SSR.CTSoft.Thymeleaf.jwt.JwtTokenProvider;
 import com.SSR.CTSoft.Thymeleaf.repository.RefreshTokenRepository;
 import com.SSR.CTSoft.Thymeleaf.repository.UserRepository;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,22 +34,36 @@ public class UserController {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
+//    @GetMapping("/")
+//    public String index(@AuthenticationPrincipal MemberDetails memberDetails, Model model) {
+//        if (memberDetails != null) {
+//            System.out.println("member details is not null!");
+//            System.out.println(memberDetails.getUsername());
+//        } else {
+//            System.out.println("member details is null!");
+//        }
+//        model.addAttribute("loginInfo", memberDetails);
+//        return "index";
+//    }
+//    @GetMapping("/user")
+//    public String user(@AuthenticationPrincipal MemberDetails memberDetails, Model model) {
+//        HashMap<String, String> map = new HashMap<>();
+//        map.put("username", memberDetails.getUsername());
+//        map.put("email", memberDetails.getUser().getEmail());
+//        model.addAttribute("user", map);
+//        return "userPage";
+//    }
+
     @GetMapping("/")
-    public String index(@AuthenticationPrincipal MemberDetails memberDetails, Model model) {
-        if (memberDetails != null) {
-            System.out.println("member details is not null!");
-            System.out.println(memberDetails.getUsername());
-        } else {
-            System.out.println("member details is null!");
-        }
-        model.addAttribute("loginInfo", memberDetails);
+    public String index(Model model) {
+
+//        model.addAttribute("loginInfo", memberDetails);
         return "index";
     }
+
     @GetMapping("/user")
-    public String user(@AuthenticationPrincipal MemberDetails memberDetails, Model model) {
+    public String user(Model model) {
         HashMap<String, String> map = new HashMap<>();
-        map.put("username", memberDetails.getUsername());
-        map.put("email", memberDetails.getUser().getEmail());
         model.addAttribute("user", map);
         return "userPage";
     }
@@ -76,6 +94,7 @@ public class UserController {
         return "redirect:/";
     }
 
+    // JWT Token을 이용한 login post mapping url
     @PostMapping("/admin/authentication")
     public String testJwtTokenGet(UserDto input, HttpServletRequest request, HttpServletResponse response) throws Exception {
         System.out.println("user controller login");
@@ -108,5 +127,75 @@ public class UserController {
         returnMap.put("msg", "JWT 발급이 완료되었습니다.");
 //        return returnMap;
         return "redirect:/";
+    }
+
+    // JWT Token 재발급
+    @PostMapping("/admin/refresh")
+    public String testTwtTokenRefresh(UserDto userDto, HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String refreshToken = null;
+        String adminId = "";
+
+        // 사용자 정보 조회
+        User user = userRepository.findByUsername(userDto.getUsername());
+
+        // refreshToken 조회
+        RefreshToken refreshTokenEntity = refreshTokenRepository.findByUserIdx(user.getId());
+
+        // token 존재 여부 확인
+        if (refreshTokenEntity == null) {
+            System.out.println("refresh token information not exists");
+            return "login";
+        } else {
+            refreshToken = refreshTokenEntity.getRefreshToken();
+        }
+
+        // refreshToken 검증
+        boolean tokenFl = false;
+        try {
+            refreshToken = refreshToken.substring(7);
+            adminId = jwtTokenProvider.getUsernameFromToken(refreshToken);
+            tokenFl = true;
+        } catch (SignatureException e) {
+            System.out.println("User");
+            System.out.println("invalid Jwt signature : " + e.getMessage());
+        } catch (MalformedJwtException e) {
+            System.out.println("JwtRequestFilter");
+            System.out.println("invalid Jwt token : " + e.getMessage());
+        } catch (ExpiredJwtException e) {
+            System.out.println("JwtRequestFilter");
+            System.out.println("JWT token is expired : " + e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            System.out.println("JwtRequestFilter");
+            System.out.println("JWT token is unsupported : " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("JwtRequestFilter");
+            System.out.println("JWT claims string is empty : " + e.getMessage());
+        }
+
+        // refreshToken 이 사용 불가능한 경우
+        if (!tokenFl) {
+            System.out.println("refresh token이 만료되었거나 정보가 존재하지 않습니다.");
+            return "login";
+        }
+
+        if (adminId != null && !adminId.equals("")) {
+            // JWT 발급
+            String tokens = jwtTokenProvider.generateAccessToken(userDto.getUsername());
+            String accessToken = URLEncoder.encode(tokens, StandardCharsets.UTF_8);
+
+            System.out.println("[JWT 재발급] accessToken : " + accessToken);
+
+            // JWT 쿠키 저장
+            Cookie cookie = new Cookie("jdhToken", "Bearer_" + accessToken);
+
+//            cookie.setHttpOnly(true);
+
+            response.addCookie(cookie);
+            System.out.println("JWT가 발급되었습니다.");
+            return "redirect:/";
+        } else {
+            System.out.println("access token 발급 중 문제가 발생했습니다.");
+            return "login";
+        }
     }
 }

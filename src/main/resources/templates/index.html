@@ -21,5 +21,8 @@
 <form th:unless="${loginInfo}" action="/login" method="get">
     <button>로그인</button>
 </form>
+<form action="/admin/refresh" method="post">
+    <button>accessToken 재발급</button>
+</form>
 </body>
 </html>
