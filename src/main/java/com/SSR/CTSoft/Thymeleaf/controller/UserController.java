@@ -7,6 +7,7 @@ import com.SSR.CTSoft.Thymeleaf.entity.User;
 import com.SSR.CTSoft.Thymeleaf.jwt.JwtTokenProvider;
 import com.SSR.CTSoft.Thymeleaf.repository.RefreshTokenRepository;
 import com.SSR.CTSoft.Thymeleaf.repository.UserRepository;
+import com.SSR.CTSoft.Thymeleaf.service.UserService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
@@ -31,7 +32,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserController {
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
 //    @GetMapping("/")
@@ -73,6 +74,12 @@ public class UserController {
         return "join";
     }
 
+    @GetMapping("/join/error")
+    public String joinError(Model model) {
+        model.addAttribute("errorMessage", "중복 가입된 회원입니다.");
+        return "join";
+    }
+
     @GetMapping("/login")
     public String login(Model model) {
         return "login";
@@ -85,12 +92,10 @@ public class UserController {
     }
     @PostMapping("/joinProc")
     public String joinProc(User user) {
-        String rawPassword = user.getPassword();
-        String encPassword = passwordEncoder.encode(rawPassword);
-        user.setPassword(encPassword);
-        user.setRole("ROLE_USER");
-        // spring security 에서 로그인 할 경우, password encoding이 안되어있으면 로그인 자체가 안됨!
-        userRepository.save(user);
+        User joinedUser = userService.joinUser(user);
+        if (joinedUser == null) {
+            return "redirect:/join/error";
+        }
         return "redirect:/";
     }
 
@@ -100,7 +105,7 @@ public class UserController {
         System.out.println("user controller login");
         System.out.println(input.toString());
         Map<String, Object> returnMap = new HashMap<>();
-        User user = userRepository.findByUsername(input.getUsername());
+        User user = userService.loginUser(input.getUsername(), input.getPassword());
         if (user == null) {
             return "redirect:/login/error";
         }
@@ -136,10 +141,10 @@ public class UserController {
         String adminId = "";
 
         // 사용자 정보 조회
-        User user = userRepository.findByUsername(userDto.getUsername());
+        User currentUser = userService.currentUser(userDto.getUsername());
 
         // refreshToken 조회
-        RefreshToken refreshTokenEntity = refreshTokenRepository.findByUserIdx(user.getId());
+        RefreshToken refreshTokenEntity = refreshTokenRepository.findByUserIdx(currentUser.getId());
 
         // token 존재 여부 확인
         if (refreshTokenEntity == null) {
@@ -180,7 +185,7 @@ public class UserController {
 
         if (adminId != null && !adminId.equals("")) {
             // JWT 발급
-            String tokens = jwtTokenProvider.generateAccessToken(userDto.getUsername());
+            String tokens = jwtTokenProvider.generateAccessToken(currentUser.getUsername());
             String accessToken = URLEncoder.encode(tokens, StandardCharsets.UTF_8);
 
             System.out.println("[JWT 재발급] accessToken : " + accessToken);

@@ -10,7 +10,7 @@
 <form action="/joinProc" method="post">
     <label>ID
         <input type="text" name="username" placeholder="Username"/>
-    </label> <br/>
+    </label><span style="color: red;" th:if="${errorMessage}" th:text="${errorMessage}"></span> <br/>
     <label>Password
         <input type="password" name="password" placeholder="Password"/>
     </label> <br/>

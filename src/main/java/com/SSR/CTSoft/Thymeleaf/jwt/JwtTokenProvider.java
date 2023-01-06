@@ -27,11 +27,13 @@ public class JwtTokenProvider {
 
     // token 으로 사용자 id 조회
     public String getUsernameFromToken(String token) {
+        System.out.println("[JwtTokenProvider] getUsernameFromToken ============");
         return this.getClaimFromToken(token, Claims::getId);
     }
 
     // token 으로 사용자 속성정보 조회
     public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
+        System.out.println("[JwtTokenProvider] getClaimFromToken ============");
         final Claims claims = this.getAllClaimsFromToken(token);
         return claimsResolver.apply(claims);
     }
@@ -43,17 +45,20 @@ public class JwtTokenProvider {
 
     // token 만료 여부 체크
     private Boolean isTokenExpired(String token) {
+        System.out.println("[JwtTokenProvider] isTokenExpired ============");
         final Date expiration = this.getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
 
     // token 만료일자 조회
     public Date getExpirationDateFromToken(String token) {
+        System.out.println("[JwtTokenProvider] getExpirationDateFromToken ============");
         return this.getClaimFromToken(token, Claims::getExpiration);
     }
 
     // id 를 입력받아 accessToken 생성
     public String generateAccessToken(String id) {
+        System.out.println("[JwtTokenProvider] generateAccessToken ============");
         return this.generateAccessToken(id, new HashMap<>());
     }
 
@@ -64,6 +69,7 @@ public class JwtTokenProvider {
 
     // JWT accessToken 생성
     private String doGenerateAccessToken(String id, Map<String, Object> claims) {
+        System.out.println("[JwtTokenProvider] doGenerateAccessToken ============");
         String accessToken = Jwts.builder()
                 .setClaims(claims)
                 .setId(id)
@@ -77,11 +83,13 @@ public class JwtTokenProvider {
 
     // id 를 입력받아 refreshToken 생성
     public String generateRefreshToken(String id) {
+        System.out.println("[JwtTokenProvider] generateRefreshToken ============");
         return this.doGenerateRefreshToken(id);
     }
 
     // JWT refreshToken 생성
     private String doGenerateRefreshToken(String id) {
+        System.out.println("[JwtTokenProvider] doGenerateRefreshToken ============");
         String refreshToken = Jwts.builder()
                 .setId(id)
                 .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY * 6))   // 30분
@@ -94,6 +102,7 @@ public class JwtTokenProvider {
 
     // id 를 입력받아 accessToken, refreshToken 생성
     public Map<String, String> generateTokenSet(String id) {
+        System.out.println("[JwtTokenProvider] generateTokenSet ============");
         return this.generateTokenSet(id, new HashMap<>());
     }
 
@@ -104,6 +113,7 @@ public class JwtTokenProvider {
 
     // JWT accessToken, refreshToken 생성
     private Map<String, String> doGenerateTokenSet(String id, Map<String, Object> claims) {
+        System.out.println("[JwtTokenProvider] doGenerateTokenSet ============");
         Map<String, String> tokens = new HashMap<>();
 
         String accessToken = Jwts.builder()
@@ -128,6 +138,7 @@ public class JwtTokenProvider {
 
     // JWT refreshToken 만료체크 후 재발급
     public Boolean reGenerateRefreshToken(String id) throws Exception {
+        System.out.println("[JwtTokenProvider] reGenerateRefreshToken ============");
         System.out.println("[reGenerateRefreshToken] refreshToken 재발급 요청");
 
         // DB 에서 관리자 정보 조회
@@ -140,6 +151,7 @@ public class JwtTokenProvider {
         // refreshToken 정보가 존재하지 않는 경우
         if (refreshTokenEntity == null) {
             System.out.println("[reGenerateRefreshToken] refreshToken 정보가 존재하지 않습니다.");
+            System.out.println("======================================================");
             return false;
         }
 
@@ -148,6 +160,7 @@ public class JwtTokenProvider {
             String refreshToken = refreshTokenEntity.getRefreshToken().substring(7);
             Jwts.parser().setSigningKey(secret).parseClaimsJws(refreshToken);
             System.out.println("[reGenerateRefreshToken] refreshToken 이 만료되지 않았습니다.");
+            System.out.println("======================================================");
             return true;
         }
         // refreshToken 이 만료된 경우 재발급
@@ -155,17 +168,20 @@ public class JwtTokenProvider {
             refreshTokenEntity.setRefreshToken("Bearer_" + this.generateRefreshToken(id));
             refreshTokenRepository.save(refreshTokenEntity);
             System.out.println("[reGenerateRefreshToken] refreshToken 재발급 완료 : " + "Bearer_" + this.generateRefreshToken(id));
+            System.out.println("======================================================");
             return true;
         }
         // 그 외 예외처리
         catch (Exception e) {
             System.out.println("[reGenerateRefreshToken] refreshToken 재발급 중 문제 발생 : " + e.getMessage());
+            System.out.println("======================================================");
             return false;
         }
     }
 
     // token 검증
     public Boolean validateToken(String token, User user) {
+        System.out.println("[JwtTokenProvider] validateToken ============");
         try {
             Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
             return true;
@@ -186,6 +202,7 @@ public class JwtTokenProvider {
             System.out.println("JWT claims string is empty : " + e.getMessage());
         }
 
+        System.out.println("======================================================");
         return false;
     }
 }
