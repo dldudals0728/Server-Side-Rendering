@@ -1,5 +1,6 @@
 .README.md
 # Server Side Rendering project
+### <i>spring security에 관한 실습을 진행한 Repository 입니다 !!!</i>
 <hr>
 
 ## spring security flow
